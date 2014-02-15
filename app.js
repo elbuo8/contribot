@@ -30,5 +30,5 @@ app.get('/award', handlers.award);
 app.post('/submit', handlers.submission);
 
 http.createServer(app).listen(app.get('port'), function(){
-  console.log('Express server listening on port ' + app.get('port'));
+  console.log('ContriBot listening on port ' + app.get('port'));
 });
