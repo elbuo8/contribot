@@ -4,8 +4,8 @@ html(lang='en')
     title='ContriBot Form'
   body
     form(method='post', action='/submit')
-      input(type='text', placeholder='Name')
-      input(type='text', placeholder='Address')
-      input(type='text', placeholder='Email')
-      input(type='text', placeholder='Shirt Size')
+      input(name='name', type='text', placeholder='Name')
+      input(name='address', type='text', placeholder='Address')
+      input(name='email', type='text', placeholder='Email')
+      input(name='shirt', type='text', placeholder='Shirt Size')
       input(type='submit', value='submit')
