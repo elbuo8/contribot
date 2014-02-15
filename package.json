@@ -1,0 +1,24 @@
+{
+  "name": "ContriBot",
+  "version": "0.0.1",
+  "private": true,
+  "scripts": {
+    "start": "node app.js"
+  },
+  "engine": {
+    "node": "0.10.x",
+    "npm": "0.1.x"
+  },
+  "dependencies": {
+    "express": "3.4.7",
+    "lob": "1.0.1",
+    "dotenv": "0.2.4",
+    "async": "~0.2.10",
+    "github": "~0.1.13",
+    "levelup": "~0.18.2",
+    "leveldown": "~0.10.2",
+    "request": "~2.33.0",
+    "jade": "~1.1.5",
+    "sendgrid": "~1.0.0-rc.1.0"
+  }
+}
