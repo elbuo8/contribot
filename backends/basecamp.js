@@ -1,4 +1,5 @@
 var request = require('request');
+var logger = require('./../lib/logger');
 
 exports.dispatch = function (userinfo) {
   request({
@@ -17,6 +18,6 @@ exports.dispatch = function (userinfo) {
       'Content-Type': 'application/json'
     }
   }, function(e, r, b) {
-    console.log(arguments);
+    logger.log(arguments);
   });
 };

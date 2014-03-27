@@ -1,5 +1,6 @@
 
 var sendgrid = require('sendgrid')(process.env.SENDGRID_USER, process.env.SENDGRID_PWD);
+var logger = require('./../lib/logger');
 
 exports.dispatch = function (userinfo) {
   sendgrid.send({
@@ -8,6 +9,6 @@ exports.dispatch = function (userinfo) {
     subject: 'New Contributor!',
     text: userinfo
   }, function (e, r) {
-    console.log(arguments);
+    logger.log(arguments);
   });
 };
