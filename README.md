@@ -11,7 +11,7 @@ In order to automate the process of sending stuff, I built a bot which will veri
 ```bash
 $ git clone https://github.com/elbuo8/contribot.git
 $ cd contribot && npm install
-$ mv sample.env .env
+$ cp sample.env .env
 ```
 
 Modify **.env** with the required values. The rest are optional depending on your backend selection.

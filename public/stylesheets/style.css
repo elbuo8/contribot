@@ -1,8 +1,48 @@
-body {
-  padding: 50px;
-  font: 14px "Lucida Grande", Helvetica, Arial, sans-serif;
+html, body {
+  height: 100%;
 }
 
-a {
-  color: #00B7FF;
+body {
+  font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  background: #eee;
+}
+
+#main {
+  max-width: 450px;
+  min-height: 100vh;
+  padding: 0 20px;
+  margin: 0 auto;
+  overflow: auto;
+  background: #fff;
+}
+
+form label {
+  display: block;
+  margin: 10px 0;
+}
+
+form label > span {
+  display: block;
+  font-weight: bold;
+}
+
+form input, form textarea{
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  margin: 5px 0;
+  padding: 3px;
+  border: 1px solid #eee;
+}
+
+form input.submit {
+  margin: 15px 0;
+  padding: 5px 3px;
+  color: #fff;
+  font-weight: bold;
+  background: #0579B8;
+}
+
+form input.submit:hover {
+  background: #1065A8;
 }
