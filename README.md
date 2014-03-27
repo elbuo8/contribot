@@ -23,10 +23,6 @@ Modify **.env** with the required values. The rest are optional depending on you
 * GITHUB\_CLIENT\_SECRET
 * GITHUB\_USER
 * GITHUB\_PWD
-* LOGGLY\_USER
-* LOGGLY\_TOKEN
-* LOGGLY\_PWD
-* LOGGLY\_SUBDOMAIN
 
 ```bash
 $ heroku create _____
