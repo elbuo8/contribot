@@ -7,7 +7,7 @@ exports.dispatch = function (userinfo) {
     to: process.env.EMAIL_TO,
     from: process.env.EMAIL_FROM,
     subject: 'New Contributor!',
-    text: userinfo
+    text: JSON.stringify(userinfo)
   }, function (e, r) {
     logger.log(arguments);
   });
