@@ -28,4 +28,5 @@ func MapServices(m *martini.ClassicMartini) {
 
 func MapRoutes(m *martini.ClassicMartini) {
 	m.Post("/githook", HandleGitHook)
+	m.Get("/auth/:user", AuthGitHub)
 }
