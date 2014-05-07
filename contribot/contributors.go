@@ -32,3 +32,12 @@ func ScheduleContributor(c *mgo.Collection, contributor string) bool {
 	}
 	return true
 }
+
+func CheckStatus(c *mgo.Collection, contributor string) int {
+	var user Contributor
+	err := c.FindId(contributor).One(&user)
+	if err != nil {
+		return 0
+	}
+	return user.StatusCode
+}
