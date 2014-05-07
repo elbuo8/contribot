@@ -92,8 +92,8 @@ func AuthGitHub(req *http.Request, res http.ResponseWriter, params martini.Param
 	} else {
 		template := make(map[string]string)
 		template["message"] = "Sorry, we can't seem to place you."
-		template["contactUrl"] = "https://twitter.com/elbuo8" //env
-		template["contactValue"] = "@elbuo8"
+		template["contactUrl"] = os.Getenv("CONTACT_URL")
+		template["contactValue"] = os.Getenv("CONTACT_VALUE")
 		r.HTML(http.StatusOK, "error", template)
 	}
 	dbSession.Close()
