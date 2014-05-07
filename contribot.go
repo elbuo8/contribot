@@ -4,6 +4,7 @@ import (
 	"./contribot"
 	"github.com/go-martini/martini"
 	"github.com/joho/godotenv"
+	"github.com/martini-contrib/render"
 	"log"
 )
 
@@ -16,6 +17,10 @@ func main() {
 
 	contribot.MapServices(app)
 	contribot.MapRoutes(app)
+	app.Use(martini.Static("public"))
+	app.Use(render.Renderer(render.Options{
+		Layout: "layout",
+	}))
 
 	app.Run()
 }
