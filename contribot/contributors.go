@@ -2,7 +2,7 @@ package contribot
 
 import (
 	"labix.org/v2/mgo"
-	"labix.org/v2/mgo/bson"
+	//"labix.org/v2/mgo/bson"
 	"log"
 )
 
@@ -19,13 +19,9 @@ type Contributor struct {
 
 func ScheduleContributor(c *mgo.Collection, contributor string) bool {
 	var user Contributor
-	err := c.FindId(id).One(&existing)
-	if err != nil {
-		log.Printf("%v", err)
-	}
-	// Existing should be nill.
-	if user != nil {
-		return false
+	err := c.FindId(contributor).One(&user)
+	if err != mgo.ErrNotFound {
+		return false // User shouldn't be in DB
 	}
 	user.ID = contributor
 	user.Status = "Scheduled to be rewarded."
