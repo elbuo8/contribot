@@ -17,14 +17,15 @@ import (
 
 const (
 	GitHubAPIURL = "https://api.github.com"
-	AcceptHeader = "application/vnd.github.v3+json"
+	AcceptHeader = "application/json"
 	UserAgent    = "ContriBot"
 )
 
-func HandleGitHook(req *http.Request, session *mgo.Session) int {
+func HandleGitHook(req *http.Request, res http.ResponseWriter, session *mgo.Session) {
 	if req.Header.Get("X-GitHub-Event") != "pull_request" {
 		log.Println("Unsed GitHub Payload")
-		return http.StatusOK
+		res.WriteHeader(http.StatusOK)
+		return
 	}
 	log.Println("Received Pull Request Payload")
 
@@ -54,8 +55,7 @@ func HandleGitHook(req *http.Request, session *mgo.Session) int {
 		// Clean up
 		dbSession.Close()
 	}
-
-	return http.StatusOK
+	res.WriteHeader(http.StatusOK)
 }
 
 func PostRewardInvite(repoName, prNumber string) {
@@ -76,84 +76,118 @@ func PostRewardInvite(repoName, prNumber string) {
 	}
 }
 
-func AuthGitHub(req *http.Request, res http.ResponseWriter, params martini.Params, session *mgo.Session, r render.Render) {
-	dbSession := session.Copy()
-	c := dbSession.DB("contribot").C("contributor")
-	status := CheckStatus(c, params["user"])
-	if status != 0 { //Auth
-		querystring := url.Values{}
-		querystring.Set("client_id", os.Getenv("GITHUB_CLIENT_ID"))
-		querystring.Set("redirect_uri", os.Getenv("DOMAIN")+"/award/"+params["user"])
-		querystring.Set("scope", "user")
-		querystring.Set("state", os.Getenv("SECRET"))
-		urlStr := "https://github.com/login/oauth/authorize?" + querystring.Encode()
-		log.Println(urlStr)
-		http.Redirect(res, req, urlStr, http.StatusFound)
-	} else {
-		template := make(map[string]string)
-		template["message"] = "Sorry, we can't seem to place you."
-		template["contactUrl"] = os.Getenv("CONTACT_URL")
-		template["contactValue"] = os.Getenv("CONTACT_VALUE")
-		r.HTML(http.StatusOK, "error", template)
-	}
-	dbSession.Close()
+func AuthGitHub(req *http.Request, res http.ResponseWriter) {
+	querystring := url.Values{}
+	querystring.Set("client_id", os.Getenv("GITHUB_CLIENT_ID"))
+	querystring.Set("redirect_uri", os.Getenv("DOMAIN")+"/award")
+	querystring.Set("scope", "user")
+	//querystring.Set("state", os.Getenv("SECRET"))
+	urlStr := "https://github.com/login/oauth/authorize?" + querystring.Encode()
+	http.Redirect(res, req, urlStr, http.StatusFound)
 }
 
-func AwardUser(req *http.Request, res http.ResponseWriter, params martini.Params, session *mgo.Session) {
+func GitHubAuthMiddleware(req *http.Request, r render.Render, c martini.Context) {
+	// Verify origin is GH
+	template := make(map[string]string)
+	template["contactUrl"] = os.Getenv("CONTACT_URL")
+	template["contactValue"] = os.Getenv("CONTACT_VALUE")
+	template["message"] = "There was an authenticating your account."
 	err := req.ParseForm()
 	if err != nil {
 		log.Println(err)
+		r.HTML(http.StatusOK, "error", template)
 		return
 	}
-	code := req.Form["code"][0]
-	if code == "" {
-		http.Redirect(res, req, "/auth/"+params["user"], http.StatusFound)
+	if len(req.Form["code"]) != 1 {
+		r.HTML(http.StatusOK, "error", template)
 		return
 	}
-
-	dbSession := session.Copy()
-	defer dbSession.Close()
-
-	c := dbSession.DB("contribot").C("contributor")
-	status := CheckStatus(c, params["user"])
-	if status == 0 {
-		// Someone is being a troll
-		return
-	} else if status == 3 {
-		//you have been awarded son.
-		return
-	}
-	//move this
-	var payload map[string]string
+	// If legit, attempt to get token
+	payload := make(map[string]string)
 	payload["client_id"] = os.Getenv("GITHUB_CLIENT_ID")
 	payload["client_secret"] = os.Getenv("GITHUB_CLIENT_SECRET")
-	payload["code"] = code
+	payload["code"] = req.Form["code"][0]
+	payload["redirect_uri"] = os.Getenv("DOMAIN") + "/award"
 	body, _ := json.Marshal(payload)
-	r, _ := http.NewRequest("POST", "https://github.com/login/oauth/access_token", bytes.NewReader(body))
-	r.Header.Add("Accept", AcceptHeader)
-	r.Header.Add("User-Agent", UserAgent)
-	ghRes, err := http.DefaultClient.Do(r)
+	ghReq, _ := http.NewRequest("POST", "https://github.com/login/oauth/access_token", bytes.NewReader(body))
+	ghReq.Header.Add("Content-Type", AcceptHeader)
+	ghReq.Header.Add("Accept", AcceptHeader)
+	ghReq.Header.Add("User-Agent", UserAgent)
+	ghRes, err := http.DefaultClient.Do(ghReq)
 
+	// check status code
 	if err != nil {
 		log.Println(err)
+		r.HTML(http.StatusOK, "error", template)
 		return
 	}
-
 	ghPayload, err := ioutil.ReadAll(ghRes.Body)
 	if err != nil {
 		log.Println(err)
+		r.HTML(http.StatusOK, "error", template)
 		return
 	}
-
 	var ghJSON map[string]interface{}
 	err = json.Unmarshal(ghPayload, &ghJSON)
 	if err != nil {
 		log.Println(err)
+		r.HTML(http.StatusOK, "error", template)
 		return
 	}
-	if params["user"] != ghJSON["login"].(string) {
-		// someone is being a troll
+	token, ok := ghJSON["access_token"].(string)
+	if !ok {
+		r.HTML(http.StatusOK, "error", template)
 		return
 	}
-	// render the form
+	c.Map(token)
+}
+
+func AwardUser(session *mgo.Session, r render.Render, token string) {
+	template := make(map[string]string)
+	template["contactUrl"] = os.Getenv("CONTACT_URL")
+	template["contactValue"] = os.Getenv("CONTACT_VALUE")
+	template["message"] = "GitHub seems to have troubles :/"
+
+	qs := url.Values{}
+	qs.Set("access_token", token)
+	ghReq, _ := http.NewRequest("GET", GitHubAPIURL+"/user?"+qs.Encode(), nil)
+	ghReq.Header.Add("User-Agent", UserAgent)
+	ghRes, err := http.DefaultClient.Do(ghReq)
+	if err != nil {
+		log.Println(err)
+		r.HTML(http.StatusOK, "error", template)
+		return
+	}
+	ghPayload, err := ioutil.ReadAll(ghRes.Body)
+	if err != nil {
+		log.Println(err)
+		r.HTML(http.StatusOK, "error", template)
+		return
+	}
+	var ghJSON map[string]interface{}
+	err = json.Unmarshal(ghPayload, &ghJSON)
+	if err != nil {
+		log.Println(err)
+		r.HTML(http.StatusOK, "error", template)
+		return
+	}
+
+	user := ghJSON["login"].(string)
+	dbSession := session.Copy()
+	status := CheckStatus(dbSession.DB("contribot").C("contributor"), user)
+	log.Println(status)
+	if status == 0 {
+		template["message"] = "Can't seem to find records of you :/"
+		r.HTML(http.StatusOK, "error", template)
+	} else if status == 1 {
+		UserHasAuth(dbSession.DB("contribot").C("contributor"), user)
+		r.HTML(http.StatusOK, "form", nil)
+	} else if status == 2 {
+		r.HTML(http.StatusOK, "form", nil)
+	} else if status == 3 {
+		template["message"] = "Hey buddy, it seems you have been awarded before."
+		r.HTML(http.StatusOK, "error", template)
+	}
+	ghRes.Body.Close()
+	dbSession.Close()
 }
