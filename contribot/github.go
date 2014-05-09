@@ -6,13 +6,13 @@ import (
 	"fmt"
 	"github.com/go-martini/martini"
 	"github.com/martini-contrib/render"
+	"github.com/martini-contrib/sessions"
 	"io/ioutil"
 	"labix.org/v2/mgo"
 	"log"
 	"net/http"
 	"net/url"
 	"os"
-	"strings"
 )
 
 const (
@@ -21,7 +21,7 @@ const (
 	UserAgent    = "ContriBot"
 )
 
-func HandleGitHook(req *http.Request, res http.ResponseWriter, session *mgo.Session) {
+func HandleGitHook(req *http.Request, res http.ResponseWriter, db *mgo.Session) {
 	if req.Header.Get("X-GitHub-Event") != "pull_request" {
 		log.Println("Unsed GitHub Payload")
 		res.WriteHeader(http.StatusOK)
@@ -41,7 +41,7 @@ func HandleGitHook(req *http.Request, res http.ResponseWriter, session *mgo.Sess
 	mergedPullRequest := pullRequest["merged"].(bool)
 
 	if mergedPullRequest {
-		dbSession := session.Copy()
+		dbSession := db.Copy()
 		c := dbSession.DB("contribot").C("contributor")
 		userInfo := pullRequest["user"].(map[string]interface{})
 		scheduled := ScheduleContributor(c, userInfo["login"].(string))
@@ -64,7 +64,7 @@ func PostRewardInvite(repoName, prNumber string) {
 	payload["body"] = "Hey! Awesome job! We wish to reward you! " +
 		"Please follow the following link. It will ask you to authenticate " +
 		"with your GitHub Account. After that just submit some info and you " +
-		"will be rewarded! \n\n" + "[Click Here!](" + os.Getenv("DOMAIN") + "/auth/" + repoName[0:strings.Index(repoName, "/")] + ")" +
+		"will be rewarded! \n\n" + "[Click Here!](" + os.Getenv("DOMAIN") + "/auth)" +
 		"\n\n Once again, you are AWESOME!"
 	body, _ := json.Marshal(payload)
 	req, _ := http.NewRequest("POST", requestUrl, bytes.NewReader(body))
@@ -86,7 +86,7 @@ func AuthGitHub(req *http.Request, res http.ResponseWriter) {
 	http.Redirect(res, req, urlStr, http.StatusFound)
 }
 
-func GitHubAuthMiddleware(req *http.Request, r render.Render, c martini.Context) {
+func GitHubAuthMiddleware(req *http.Request, res http.ResponseWriter, r render.Render, c martini.Context) {
 	// Verify origin is GH
 	template := make(map[string]string)
 	template["contactUrl"] = os.Getenv("CONTACT_URL")
@@ -140,9 +140,11 @@ func GitHubAuthMiddleware(req *http.Request, r render.Render, c martini.Context)
 		return
 	}
 	c.Map(token)
+	c.Next()
+	http.Redirect(res, req, "/award", http.StatusOK)
 }
 
-func AwardUser(session *mgo.Session, r render.Render, token string) {
+func GetUserFromToken(db *mgo.Session, r render.Render, token string, session sessions.Session) {
 	template := make(map[string]string)
 	template["contactUrl"] = os.Getenv("CONTACT_URL")
 	template["contactValue"] = os.Getenv("CONTACT_VALUE")
@@ -164,6 +166,7 @@ func AwardUser(session *mgo.Session, r render.Render, token string) {
 		r.HTML(http.StatusOK, "error", template)
 		return
 	}
+	ghRes.Body.Close()
 	var ghJSON map[string]interface{}
 	err = json.Unmarshal(ghPayload, &ghJSON)
 	if err != nil {
@@ -172,22 +175,60 @@ func AwardUser(session *mgo.Session, r render.Render, token string) {
 		return
 	}
 
-	user := ghJSON["login"].(string)
-	dbSession := session.Copy()
+	user, ok := ghJSON["login"].(string)
+	if !ok {
+		log.Println("Obtaining username from request failed.")
+		r.HTML(http.StatusOK, "error", template)
+	}
+	session.Set("user", user)
+}
+
+func AwardUser(db *mgo.Session, session sessions.Session, r render.Render) {
+	template := make(map[string]string)
+	template["contactUrl"] = os.Getenv("CONTACT_URL")
+	template["contactValue"] = os.Getenv("CONTACT_VALUE")
+	dbSession := db.Copy()
+	user := session.Get("user").(string)
 	status := CheckStatus(dbSession.DB("contribot").C("contributor"), user)
-	log.Println(status)
 	if status == 0 {
 		template["message"] = "Can't seem to find records of you :/"
 		r.HTML(http.StatusOK, "error", template)
 	} else if status == 1 {
-		UserHasAuth(dbSession.DB("contribot").C("contributor"), user)
-		r.HTML(http.StatusOK, "form", nil)
+		err := UserHasAuth(dbSession.DB("contribot").C("contributor"), user)
+		if err != nil {
+			log.Println(err)
+			template["message"] = "Uh oh! Please report this :("
+			r.HTML(http.StatusOK, "error", template)
+		} else {
+			r.HTML(http.StatusOK, "form", nil)
+		}
 	} else if status == 2 {
 		r.HTML(http.StatusOK, "form", nil)
 	} else if status == 3 {
 		template["message"] = "Hey buddy, it seems you have been awarded before."
 		r.HTML(http.StatusOK, "error", template)
 	}
-	ghRes.Body.Close()
 	dbSession.Close()
+}
+
+func HandleSubmission(req *http.Request, r render.Render, db *mgo.Session, session sessions.Session) {
+	template := make(map[string]string)
+	template["contactUrl"] = os.Getenv("CONTACT_URL")
+	template["contactValue"] = os.Getenv("CONTACT_VALUE")
+	template["message"] = "Something went wrong :'("
+	err := req.ParseForm()
+	if err != nil {
+		r.HTML(http.StatusOK, "error", template)
+	}
+	user := session.Get("user").(string)
+	dbSession := db.Copy()
+	err = UserHasSubmitted(dbSession.DB("contribot").C("contributor"), user)
+
+	if err != nil {
+		log.Println(err)
+		r.HTML(http.StatusOK, "error", template)
+	} else {
+		// handle form and create middleware like shit
+	}
+
 }
