@@ -2,13 +2,12 @@ package contribot
 
 import (
 	"labix.org/v2/mgo"
-	//"labix.org/v2/mgo/bson"
+	"labix.org/v2/mgo/bson"
 	"log"
 )
 
 type Contributor struct {
 	ID         string `bson:"_id"`
-	Status     string `bson:"status"`
 	StatusCode int    `bson:"status_code"`
 }
 
@@ -24,7 +23,6 @@ func ScheduleContributor(c *mgo.Collection, contributor string) bool {
 		return false // User shouldn't be in DB
 	}
 	user.ID = contributor
-	user.Status = "Scheduled to be rewarded."
 	user.StatusCode = 1
 	err = c.Insert(user)
 	if err != nil {
@@ -40,4 +38,12 @@ func CheckStatus(c *mgo.Collection, contributor string) int {
 		return 0
 	}
 	return user.StatusCode
+}
+
+func UserHasAuth(c *mgo.Collection, contributor string) bool {
+	err := c.UpdateId(contributor, bson.M{"$set": bson.M{"status_code": 2}})
+	if err != nil {
+		return false
+	}
+	return true
 }
