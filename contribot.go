@@ -5,7 +5,9 @@ import (
 	"github.com/go-martini/martini"
 	"github.com/joho/godotenv"
 	"github.com/martini-contrib/render"
+	"github.com/martini-contrib/sessions"
 	"log"
+	"os"
 )
 
 func main() {
@@ -21,6 +23,7 @@ func main() {
 	app.Use(render.Renderer(render.Options{
 		Layout: "layout",
 	}))
-
+	store := sessions.NewCookieStore([]byte(os.Getenv("SECRET")))
+	app.Use(sessions.Sessions("session", store))
 	app.Run()
 }
