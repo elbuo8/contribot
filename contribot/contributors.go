@@ -40,10 +40,11 @@ func CheckStatus(c *mgo.Collection, contributor string) int {
 	return user.StatusCode
 }
 
-func UserHasAuth(c *mgo.Collection, contributor string) bool {
-	err := c.UpdateId(contributor, bson.M{"$set": bson.M{"status_code": 2}})
-	if err != nil {
-		return false
-	}
-	return true
+func UserHasAuth(c *mgo.Collection, contributor string) error {
+	return c.UpdateId(contributor, bson.M{"$set": bson.M{"status_code": 2}})
+}
+
+func UserHasSubmitted(c *mgo.Collection, contributor string) error {
+	return c.UpdateId(contributor, bson.M{"$set": bson.M{"status_code": 3}})
+
 }
