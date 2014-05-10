@@ -1,5 +1,6 @@
 package contribot
 
+// Submission contains the values gathered from a Contributor
 type Submission struct {
 	Name    string
 	Address string
@@ -7,4 +8,4 @@ type Submission struct {
 	Size    string
 }
 
-type Backend func(*Submission)
+type backend func(*Submission)

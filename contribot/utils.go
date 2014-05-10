@@ -11,7 +11,7 @@ import (
 	"os/signal"
 )
 
-func MapServices(m *martini.ClassicMartini) {
+func mapServices(m *martini.ClassicMartini) {
 	db, err := mgo.Dial(os.Getenv("DB_URL"))
 	if err != nil {
 		log.Fatal(err)
@@ -29,17 +29,17 @@ func MapServices(m *martini.ClassicMartini) {
 	m.Map(db)
 }
 
-func Gandalf(req *http.Request, res http.ResponseWriter, session sessions.Session) {
+func gandalf(req *http.Request, res http.ResponseWriter, session sessions.Session) {
 	if session.Get("user") == "" {
 		http.Redirect(res, req, "/auth", http.StatusFound)
 		return
 	}
 }
 
-func MapRoutes(m *martini.ClassicMartini) {
-	m.Post("/githook", HandleGitHook)
-	m.Get("/auth", AuthGitHub)
-	m.Get("/githubAuth", GitHubAuthMiddleware, GetUserFromToken)
-	m.Get("/award", Gandalf, AwardUser)
-	m.Post("/submission", Gandalf, csrf.Validate, HandleSubmission)
+func mapRoutes(m *martini.ClassicMartini) {
+	m.Post("/githook", handleGitHook)
+	m.Get("/auth", authGitHub)
+	m.Get("/githubAuth", gitHubAuthMiddleware, getUserFromToken)
+	m.Get("/award", gandalf, awardUser)
+	m.Post("/submission", gandalf, csrf.Validate, handleSubmission)
 }

@@ -11,20 +11,21 @@ import (
 	"os"
 )
 
-type ContriBot struct {
+type contriBot struct {
 	Server   *martini.ClassicMartini
-	Backends []Backend
+	Backends []backend
 }
 
-func New() *ContriBot {
+// New creates contriBot struct
+func New() *contriBot {
 	err := godotenv.Load() // Make this easier
 	if err != nil {
 		log.Fatal(err)
 	}
 	app := martini.Classic()
 
-	MapServices(app)
-	MapRoutes(app)
+	mapServices(app)
+	mapRoutes(app)
 	app.Use(martini.Static("public"))
 	app.Use(render.Renderer(render.Options{
 		Layout: "layout",
@@ -38,16 +39,16 @@ func New() *ContriBot {
 			http.Error(res, "CSRF Token Failure", http.StatusUnauthorized)
 		},
 	}))
-	return &ContriBot{
+	return &contriBot{
 		Server: app,
 	}
 }
 
-func (b *ContriBot) Run() {
+func (b *contriBot) Run() {
 	b.Server.Map(b.Backends)
 	b.Server.Run()
 }
 
-func (b *ContriBot) Use(backend Backend) {
+func (b *contriBot) Use(backend backend) {
 	b.Backends = append(b.Backends, backend)
 }

@@ -6,7 +6,7 @@ import (
 	"log"
 )
 
-type Contributor struct {
+type userT struct {
 	ID         string `bson:"_id"`
 	StatusCode int    `bson:"status_code"`
 }
@@ -16,8 +16,8 @@ type Contributor struct {
 // StatusCode - 2 - User is scheduled and has auth.
 // StatusCode - 3 - User has submitted.
 
-func ScheduleContributor(c *mgo.Collection, contributor string) bool {
-	var user Contributor
+func scheduleContributor(c *mgo.Collection, contributor string) bool {
+	var user userT
 	err := c.FindId(contributor).One(&user)
 	if err != mgo.ErrNotFound {
 		return false // User shouldn't be in DB
@@ -31,8 +31,8 @@ func ScheduleContributor(c *mgo.Collection, contributor string) bool {
 	return true
 }
 
-func CheckStatus(c *mgo.Collection, contributor string) int {
-	var user Contributor
+func checkStatus(c *mgo.Collection, contributor string) int {
+	var user userT
 	err := c.FindId(contributor).One(&user)
 	if err != nil {
 		return 0
@@ -40,10 +40,10 @@ func CheckStatus(c *mgo.Collection, contributor string) int {
 	return user.StatusCode
 }
 
-func UserHasAuth(c *mgo.Collection, contributor string) error {
+func userHasAuth(c *mgo.Collection, contributor string) error {
 	return c.UpdateId(contributor, bson.M{"$set": bson.M{"status_code": 2}})
 }
 
-func UserHasSubmitted(c *mgo.Collection, contributor string) error {
+func userHasSubmitted(c *mgo.Collection, contributor string) error {
 	return c.UpdateId(contributor, bson.M{"$set": bson.M{"status_code": 3}})
 }
