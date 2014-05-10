@@ -46,5 +46,4 @@ func UserHasAuth(c *mgo.Collection, contributor string) error {
 
 func UserHasSubmitted(c *mgo.Collection, contributor string) error {
 	return c.UpdateId(contributor, bson.M{"$set": bson.M{"status_code": 3}})
-
 }

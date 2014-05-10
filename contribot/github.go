@@ -210,7 +210,7 @@ func AwardUser(db *mgo.Session, session sessions.Session, r render.Render, x csr
 	dbSession.Close()
 }
 
-func HandleSubmission(req *http.Request, r render.Render, db *mgo.Session, session sessions.Session) {
+func HandleSubmission(req *http.Request, r render.Render, db *mgo.Session, session sessions.Session, backends []Backend) {
 	template := make(map[string]string)
 	template["contactUrl"] = os.Getenv("CONTACT_URL")
 	template["contactValue"] = os.Getenv("CONTACT_VALUE")
@@ -227,7 +227,15 @@ func HandleSubmission(req *http.Request, r render.Render, db *mgo.Session, sessi
 		log.Println(err)
 		r.HTML(http.StatusOK, "error", template)
 	} else {
-		// Goroutines per stuff.
+		submission := &Submission{
+			Name:    req.PostForm.Get("name"),
+			Address: req.PostForm.Get("address"),
+			Email:   req.PostForm.Get("email"),
+			Size:    req.PostForm.Get("size"),
+		}
+		for i := 0; i < len(backends); i++ {
+			go backends[i](submission)
+		}
 		r.HTML(http.StatusOK, "success", nil)
 	}
 }
