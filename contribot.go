@@ -4,9 +4,11 @@ import (
 	"./contribot"
 	"github.com/go-martini/martini"
 	"github.com/joho/godotenv"
+	"github.com/martini-contib/csrf"
 	"github.com/martini-contrib/render"
 	"github.com/martini-contrib/sessions"
 	"log"
+	"net/http"
 	"os"
 )
 
@@ -25,5 +27,12 @@ func main() {
 	}))
 	store := sessions.NewCookieStore([]byte(os.Getenv("SECRET")))
 	app.Use(sessions.Sessions("session", store))
+	app.Use(csrf.Generate(&csrf.Options{
+		Secret:     os.Getenv("CSRF"),
+		SessionKey: "user",
+		ErrorFunc: func(res http.ResponseWriter) {
+			http.Error(res, "CSRF Token Failure", http.StatusUnauthorized)
+		},
+	}))
 	app.Run()
 }

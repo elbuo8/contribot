@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/go-martini/martini"
+	"github.com/martini-contib/csrf"
 	"github.com/martini-contrib/render"
 	"github.com/martini-contrib/sessions"
 	"io/ioutil"
@@ -183,7 +184,7 @@ func GetUserFromToken(db *mgo.Session, r render.Render, token string, session se
 	session.Set("user", user)
 }
 
-func AwardUser(db *mgo.Session, session sessions.Session, r render.Render) {
+func AwardUser(db *mgo.Session, session sessions.Session, r render.Render, x csrf.CSRF) {
 	template := make(map[string]string)
 	template["contactUrl"] = os.Getenv("CONTACT_URL")
 	template["contactValue"] = os.Getenv("CONTACT_VALUE")
@@ -200,10 +201,10 @@ func AwardUser(db *mgo.Session, session sessions.Session, r render.Render) {
 			template["message"] = "Uh oh! Please report this :("
 			r.HTML(http.StatusOK, "error", template)
 		} else {
-			r.HTML(http.StatusOK, "form", nil)
+			r.HTML(http.StatusOK, "form", x.GetToken())
 		}
 	} else if status == 2 {
-		r.HTML(http.StatusOK, "form", nil)
+		r.HTML(http.StatusOK, "form", x.GetToken())
 	} else if status == 3 {
 		template["message"] = "Hey buddy, it seems you have been awarded before."
 		r.HTML(http.StatusOK, "error", template)
@@ -228,7 +229,7 @@ func HandleSubmission(req *http.Request, r render.Render, db *mgo.Session, sessi
 		log.Println(err)
 		r.HTML(http.StatusOK, "error", template)
 	} else {
-		// handle form and create middleware like shit
+		// Goroutines per stuff.
+		r.HTML(http.StatusOK, "success", nil)
 	}
-
 }

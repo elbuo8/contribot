@@ -1,4 +1,4 @@
-<form form="submission">
+<form action="/submission" method="POST">
   <label>
     <span>Name</span>
     <input name="name" type="text" placeholder="Popeye Brutus" required></input>
@@ -15,5 +15,6 @@
     <span>T-Shirt</span>
     <input name="shirt" type="text" placeholder="Women's Medium" required></input>
   </label>
+  <input type="hidden" name="_csrf" value="{{.}}">
   <input class="submit" type="submit" value="Submit">
 </form>

@@ -2,6 +2,7 @@ package contribot
 
 import (
 	"github.com/go-martini/martini"
+	"github.com/martini-contib/csrf"
 	"github.com/martini-contrib/sessions"
 	"labix.org/v2/mgo"
 	"log"
@@ -30,7 +31,8 @@ func MapServices(m *martini.ClassicMartini) {
 
 func Gandalf(req *http.Request, res http.ResponseWriter, session sessions.Session) {
 	if session.Get("user") == "" {
-		http.Redirect(res, req, "/auth", http.StatusOK)
+		http.Redirect(res, req, "/auth", http.StatusFound)
+		return
 	}
 }
 
@@ -39,4 +41,5 @@ func MapRoutes(m *martini.ClassicMartini) {
 	m.Get("/auth", AuthGitHub)
 	m.Get("/githubAuth", GitHubAuthMiddleware, GetUserFromToken)
 	m.Get("/award", Gandalf, AwardUser)
+	m.Post("/submission", Gandalf, csrf.Validate, HandleSubmission)
 }
