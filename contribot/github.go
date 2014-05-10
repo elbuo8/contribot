@@ -80,9 +80,8 @@ func PostRewardInvite(repoName, prNumber string) {
 func AuthGitHub(req *http.Request, res http.ResponseWriter) {
 	querystring := url.Values{}
 	querystring.Set("client_id", os.Getenv("GITHUB_CLIENT_ID"))
-	querystring.Set("redirect_uri", os.Getenv("DOMAIN")+"/award")
+	querystring.Set("redirect_uri", os.Getenv("DOMAIN")+"/githubAuth")
 	querystring.Set("scope", "user")
-	//querystring.Set("state", os.Getenv("SECRET"))
 	urlStr := "https://github.com/login/oauth/authorize?" + querystring.Encode()
 	http.Redirect(res, req, urlStr, http.StatusFound)
 }
@@ -108,7 +107,6 @@ func GitHubAuthMiddleware(req *http.Request, res http.ResponseWriter, r render.R
 	payload["client_id"] = os.Getenv("GITHUB_CLIENT_ID")
 	payload["client_secret"] = os.Getenv("GITHUB_CLIENT_SECRET")
 	payload["code"] = req.Form["code"][0]
-	payload["redirect_uri"] = os.Getenv("DOMAIN") + "/award"
 	body, _ := json.Marshal(payload)
 	ghReq, _ := http.NewRequest("POST", "https://github.com/login/oauth/access_token", bytes.NewReader(body))
 	ghReq.Header.Add("Content-Type", AcceptHeader)
@@ -142,7 +140,7 @@ func GitHubAuthMiddleware(req *http.Request, res http.ResponseWriter, r render.R
 	}
 	c.Map(token)
 	c.Next()
-	http.Redirect(res, req, "/award", http.StatusOK)
+	http.Redirect(res, req, "/award", http.StatusFound)
 }
 
 func GetUserFromToken(db *mgo.Session, r render.Render, token string, session sessions.Session) {
