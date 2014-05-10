@@ -73,7 +73,7 @@ func postRewardInvite(repoName, prNumber string) {
 	req.Header.Add("Authorization", "token "+os.Getenv("GITHUB_TOKEN"))
 	_, err := http.DefaultClient.Do(req)
 	if err != nil {
-		log.Printf("%v", err)
+		log.Println(err)
 	}
 }
 
@@ -95,11 +95,11 @@ func gitHubAuthMiddleware(req *http.Request, res http.ResponseWriter, r render.R
 	err := req.ParseForm()
 	if err != nil {
 		log.Println(err)
-		r.HTML(http.StatusOK, "error", template)
+		r.HTML(http.StatusBadRequest, "error", template)
 		return
 	}
 	if len(req.Form["code"]) != 1 {
-		r.HTML(http.StatusOK, "error", template)
+		r.HTML(http.StatusUnauthorized, "error", template)
 		return
 	}
 	// If legit, attempt to get token
@@ -117,20 +117,20 @@ func gitHubAuthMiddleware(req *http.Request, res http.ResponseWriter, r render.R
 	// check status code
 	if err != nil {
 		log.Println(err)
-		r.HTML(http.StatusOK, "error", template)
+		r.HTML(http.StatusServiceUnavailable, "error", template)
 		return
 	}
 	ghPayload, err := ioutil.ReadAll(ghRes.Body)
 	if err != nil {
 		log.Println(err)
-		r.HTML(http.StatusOK, "error", template)
+		r.HTML(http.StatusInternalServerError, "error", template)
 		return
 	}
 	var ghJSON map[string]interface{}
 	err = json.Unmarshal(ghPayload, &ghJSON)
 	if err != nil {
 		log.Println(err)
-		r.HTML(http.StatusOK, "error", template)
+		r.HTML(http.StatusInternalServerError, "error", template)
 		return
 	}
 	token, ok := ghJSON["access_token"].(string)
@@ -156,13 +156,13 @@ func getUserFromToken(db *mgo.Session, r render.Render, token string, session se
 	ghRes, err := http.DefaultClient.Do(ghReq)
 	if err != nil {
 		log.Println(err)
-		r.HTML(http.StatusOK, "error", template)
+		r.HTML(http.StatusServiceUnavailable, "error", template)
 		return
 	}
 	ghPayload, err := ioutil.ReadAll(ghRes.Body)
 	if err != nil {
 		log.Println(err)
-		r.HTML(http.StatusOK, "error", template)
+		r.HTML(http.StatusInternalServerError, "error", template)
 		return
 	}
 	ghRes.Body.Close()
@@ -170,14 +170,14 @@ func getUserFromToken(db *mgo.Session, r render.Render, token string, session se
 	err = json.Unmarshal(ghPayload, &ghJSON)
 	if err != nil {
 		log.Println(err)
-		r.HTML(http.StatusOK, "error", template)
+		r.HTML(http.StatusInternalServerError, "error", template)
 		return
 	}
 
 	user, ok := ghJSON["login"].(string)
 	if !ok {
 		log.Println("Obtaining username from request failed.")
-		r.HTML(http.StatusOK, "error", template)
+		r.HTML(http.StatusInternalServerError, "error", template)
 	}
 	session.Set("user", user)
 }
@@ -191,13 +191,13 @@ func awardUser(db *mgo.Session, session sessions.Session, r render.Render, x csr
 	status := checkStatus(dbSession.DB("contribot").C("contributor"), user)
 	if status == 0 {
 		template["message"] = "Can't seem to find records of you :/"
-		r.HTML(http.StatusOK, "error", template)
+		r.HTML(http.StatusUnauthorized, "error", template)
 	} else if status == 1 {
 		err := userHasAuth(dbSession.DB("contribot").C("contributor"), user)
 		if err != nil {
 			log.Println(err)
 			template["message"] = "Uh oh! Please report this :("
-			r.HTML(http.StatusOK, "error", template)
+			r.HTML(http.StatusInternalServerError, "error", template)
 		} else {
 			r.HTML(http.StatusOK, "form", x.GetToken())
 		}
@@ -205,7 +205,7 @@ func awardUser(db *mgo.Session, session sessions.Session, r render.Render, x csr
 		r.HTML(http.StatusOK, "form", x.GetToken())
 	} else if status == 3 {
 		template["message"] = "Hey buddy, it seems you have been awarded before."
-		r.HTML(http.StatusOK, "error", template)
+		r.HTML(http.StatusUnauthorized, "error", template)
 	}
 	dbSession.Close()
 }
@@ -217,7 +217,7 @@ func handleSubmission(req *http.Request, r render.Render, db *mgo.Session, sessi
 	template["message"] = "Something went wrong :'("
 	err := req.ParseForm()
 	if err != nil {
-		r.HTML(http.StatusOK, "error", template)
+		r.HTML(http.StatusBadRequest, "error", template)
 	}
 	user := session.Get("user").(string)
 	dbSession := db.Copy()
@@ -225,7 +225,7 @@ func handleSubmission(req *http.Request, r render.Render, db *mgo.Session, sessi
 
 	if err != nil {
 		log.Println(err)
-		r.HTML(http.StatusOK, "error", template)
+		r.HTML(http.StatusInternalServerError, "error", template)
 	} else {
 		submission := &Submission{
 			Name:    req.PostForm.Get("name"),
