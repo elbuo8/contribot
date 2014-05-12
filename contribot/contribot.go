@@ -9,11 +9,12 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strconv"
 )
 
 type contriBot struct {
 	Server   *martini.ClassicMartini
-	Backends []backend
+	Backends []Backend
 }
 
 // New creates contriBot struct
@@ -44,11 +45,11 @@ func New() *contriBot {
 	}
 }
 
-func (b *contriBot) Run(port string) {
+func (b *contriBot) Run(port int) {
 	b.Server.Map(b.Backends)
-	log.Fatal(http.ListenAndServe(":"+port, b.Server))
+	log.Fatal(http.ListenAndServe(":"+strconv.Itoa(port), b.Server))
 }
 
-func (b *contriBot) Use(backend backend) {
+func (b *contriBot) Use(backend Backend) {
 	b.Backends = append(b.Backends, backend)
 }

@@ -210,7 +210,7 @@ func awardUser(db *mgo.Session, session sessions.Session, r render.Render, x csr
 	dbSession.Close()
 }
 
-func handleSubmission(req *http.Request, r render.Render, db *mgo.Session, session sessions.Session, backends []backend) {
+func handleSubmission(req *http.Request, r render.Render, db *mgo.Session, session sessions.Session, backends []Backend) {
 	template := make(map[string]string)
 	template["contactUrl"] = os.Getenv("CONTACT_URL")
 	template["contactValue"] = os.Getenv("CONTACT_VALUE")

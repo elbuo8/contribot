@@ -8,4 +8,5 @@ type Submission struct {
 	Size    string
 }
 
-type backend func(*Submission)
+// Backend Type
+type Backend func(*Submission)
