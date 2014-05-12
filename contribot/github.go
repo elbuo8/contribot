@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/go-martini/martini"
-	"github.com/martini-contib/csrf"
+	"github.com/martini-contrib/csrf"
 	"github.com/martini-contrib/render"
 	"github.com/martini-contrib/sessions"
 	"io/ioutil"

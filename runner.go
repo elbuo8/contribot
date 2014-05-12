@@ -1,7 +1,7 @@
 package main
 
 import (
-	"./contribot"
+	"github.com/elbuo8/contribot/contribot"
 	"log"
 )
 

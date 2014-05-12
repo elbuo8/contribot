@@ -3,7 +3,7 @@ package contribot
 import (
 	"github.com/go-martini/martini"
 	"github.com/joho/godotenv"
-	"github.com/martini-contib/csrf"
+	"github.com/martini-contrib/csrf"
 	"github.com/martini-contrib/render"
 	"github.com/martini-contrib/sessions"
 	"log"

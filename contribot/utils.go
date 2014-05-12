@@ -2,7 +2,7 @@ package contribot
 
 import (
 	"github.com/go-martini/martini"
-	"github.com/martini-contib/csrf"
+	"github.com/martini-contrib/csrf"
 	"github.com/martini-contrib/sessions"
 	"labix.org/v2/mgo"
 	"log"
