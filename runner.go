@@ -12,5 +12,5 @@ func main() {
 		log.Println(submission)
 	})
 
-	bot.Run()
+	bot.Run("80")
 }
