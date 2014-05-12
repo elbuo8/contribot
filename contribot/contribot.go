@@ -44,9 +44,9 @@ func New() *contriBot {
 	}
 }
 
-func (b *contriBot) Run() {
+func (b *contriBot) Run(port string) {
 	b.Server.Map(b.Backends)
-	b.Server.Run()
+	log.Fatal(http.ListenAndServe(":"+port, b.Server))
 }
 
 func (b *contriBot) Use(backend backend) {
