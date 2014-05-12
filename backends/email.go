@@ -6,7 +6,7 @@ import (
 	"github.com/sendgrid/sendgrid-go"
 )
 
-type Options struct {
+type EmailOptions struct {
 	Username string
 	Password string
 	Alert    []string
@@ -14,7 +14,7 @@ type Options struct {
 	Subject  string
 }
 
-func Email(opts *Options) contribot.Backend {
+func Email(opts *EmailOptions) contribot.Backend {
 	sg := sendgrid.NewSendGridClient(opts.Username, opts.Password)
 	mail := sendgrid.NewMail()
 	mail.AddTos(opts.Alert)
