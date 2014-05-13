@@ -32,7 +32,7 @@ func main() {
 	bot.Use(backends.HipChat(&backends.HipChatOptions{
 		Token: os.Getenv("HC_TOKEN"),
 		Room:  os.Getenv("HC_ROOM"),
-		Color: "blue",
+		Color: "purple",
 	}))
 	bot.Run(80)
 }
