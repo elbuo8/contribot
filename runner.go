@@ -29,5 +29,10 @@ func main() {
 		Account:     os.Getenv("BC_ACCOUNT"),
 		Subscribers: strings.Split(os.Getenv("BC_SUBS"), ","),
 	}))
+	bot.Use(backends.HipChat(&backends.HipChatOptions{
+		Token: os.Getenv("HC_TOKEN"),
+		Room:  os.Getenv("HC_ROOM"),
+		Color: "blue",
+	}))
 	bot.Run(80)
 }
