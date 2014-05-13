@@ -16,8 +16,9 @@ type userT struct {
 // StatusCode - 2 - User is scheduled and has auth.
 // StatusCode - 3 - User has submitted.
 
-func scheduleContributor(c *mgo.Collection, contributor string) bool {
+func scheduleContributor(db *mgo.Database, contributor string) bool {
 	var user userT
+	c := db.C("contributor")
 	err := c.FindId(contributor).One(&user)
 	if err != mgo.ErrNotFound {
 		return false // User shouldn't be in DB
@@ -31,19 +32,19 @@ func scheduleContributor(c *mgo.Collection, contributor string) bool {
 	return true
 }
 
-func checkStatus(c *mgo.Collection, contributor string) int {
+func checkStatus(db *mgo.Database, contributor string) int {
 	var user userT
-	err := c.FindId(contributor).One(&user)
+	err := db.C("contributor").FindId(contributor).One(&user)
 	if err != nil {
 		return 0
 	}
 	return user.StatusCode
 }
 
-func userHasAuth(c *mgo.Collection, contributor string) error {
-	return c.UpdateId(contributor, bson.M{"$set": bson.M{"status_code": 2}})
+func userHasAuth(db *mgo.Database, contributor string) error {
+	return db.C("contributor").UpdateId(contributor, bson.M{"$set": bson.M{"status_code": 2}})
 }
 
-func userHasSubmitted(c *mgo.Collection, contributor string) error {
-	return c.UpdateId(contributor, bson.M{"$set": bson.M{"status_code": 3}})
+func userHasSubmitted(db *mgo.Database, contributor string) error {
+	return db.C("contributor").UpdateId(contributor, bson.M{"$set": bson.M{"status_code": 3}})
 }
