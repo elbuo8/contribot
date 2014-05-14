@@ -58,11 +58,14 @@ func handleGitHook(req *http.Request, res http.ResponseWriter, db *mgo.Database)
 func postRewardInvite(repoName, prNumber string) {
 	requestURL := gitHubAPIURL + "/repos/" + repoName + "/issues/" + prNumber + "/comments"
 	payload := make(map[string]string)
-	payload["body"] = "Hey! Awesome job! We wish to reward you! " +
-		"Please follow the following link. It will ask you to authenticate " +
-		"with your GitHub Account. After that just submit some info and you " +
-		"will be rewarded! \n\n" + "[Click Here!](" + os.Getenv("DOMAIN") + "/auth)" +
-		"\n\n Once again, you are AWESOME!"
+	payload["body"] = "Thanks for contributing to SendGrid Open Source! " +
+		"We think it's awesome when community members contribute " +
+		"to our projects and want to celebrate that." +
+		"\n\nThe following link will ask you to authenticate with Github " +
+		"(so we can verify your identity), it will then ask for a little bit more " +
+		"information and we'll then send you a thanks for contributing." +
+		"\n\n**[Click Here to Continue »](" + os.Getenv("DOMAIN") + "/auth)**" +
+		"\n\nOnce again, thank you!"
 	body, _ := json.Marshal(payload)
 	req, _ := http.NewRequest("POST", requestURL, bytes.NewReader(body))
 	req.Header.Add("Accept", acceptHeader)
