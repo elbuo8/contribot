@@ -30,11 +30,28 @@ func handleGitHook(req *http.Request, res http.ResponseWriter, db *mgo.Session) 
 	}
 
 	log.Println("Received Pull Request Payload")
-	rawPayload, err := ioutil.ReadAll(req.Body)
-	if err != nil {
-		log.Println(err)
-		return
+
+	var rawPayload []byte
+	var err error
+	if req.Header.Get("content-type") == "application/x-www-form-urlencoded" {
+		err = req.ParseForm()
+		if err != nil {
+			log.Println(err)
+			res.WriteHeader(http.StatusBadRequest)
+			return
+		}
+		payload := req.PostForm.Get("payload")
+		rawPayload = []byte(payload)
+	} else {
+		rawPayload, err = ioutil.ReadAll(req.Body)
+		req.Body.Close()
+		if err != nil {
+			log.Println(err)
+			res.WriteHeader(http.StatusBadRequest)
+			return
+		}
 	}
+
 	var payload map[string]interface{}
 	err = json.Unmarshal(rawPayload, &payload)
 
