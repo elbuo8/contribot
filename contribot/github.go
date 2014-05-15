@@ -22,7 +22,7 @@ const (
 	userAgent    = "ContriBot"
 )
 
-func handleGitHook(req *http.Request, res http.ResponseWriter, db *mgo.Database) {
+func handleGitHook(req *http.Request, res http.ResponseWriter, db *mgo.Session) {
 	if req.Header.Get("X-GitHub-Event") != "pull_request" {
 		log.Println("Unsed GitHub Payload")
 		res.WriteHeader(http.StatusOK)
@@ -42,8 +42,10 @@ func handleGitHook(req *http.Request, res http.ResponseWriter, db *mgo.Database)
 	mergedPullRequest := pullRequest["merged"].(bool)
 
 	if mergedPullRequest {
+		dbSession := db.Copy()
+		c := dbSession.DB("contribot").C("contributor")
 		userInfo := pullRequest["user"].(map[string]interface{})
-		scheduled := scheduleContributor(db, userInfo["login"].(string))
+		scheduled := scheduleContributor(c, userInfo["login"].(string))
 		if scheduled {
 			log.Printf("New Contributor: %s", userInfo["login"])
 			repository := payload["repository"].(map[string]interface{})
@@ -51,6 +53,8 @@ func handleGitHook(req *http.Request, res http.ResponseWriter, db *mgo.Database)
 			pullRequestNumber := fmt.Sprintf("%.0f", pullRequest["number"].(float64))
 			go postRewardInvite(repoName, pullRequestNumber)
 		}
+		// Clean up
+		dbSession.Close()
 	}
 	res.WriteHeader(http.StatusOK)
 }
@@ -139,7 +143,7 @@ func gitHubAuthMiddleware(req *http.Request, res http.ResponseWriter, r render.R
 	http.Redirect(res, req, "/award", http.StatusFound)
 }
 
-func getUserFromToken(r render.Render, token string, session sessions.Session) {
+func getUserFromToken(db *mgo.Session, r render.Render, token string, session sessions.Session) {
 	template := make(map[string]string)
 	template["contactUrl"] = os.Getenv("CONTACT_URL")
 	template["contactValue"] = os.Getenv("CONTACT_VALUE")
@@ -178,17 +182,18 @@ func getUserFromToken(r render.Render, token string, session sessions.Session) {
 	session.Set("user", user)
 }
 
-func awardUser(db *mgo.Database, session sessions.Session, r render.Render, x csrf.CSRF) {
+func awardUser(db *mgo.Session, session sessions.Session, r render.Render, x csrf.CSRF) {
 	template := make(map[string]string)
 	template["contactUrl"] = os.Getenv("CONTACT_URL")
 	template["contactValue"] = os.Getenv("CONTACT_VALUE")
+	dbSession := db.Copy()
 	user := session.Get("user").(string)
-	status := checkStatus(db, user)
+	status := checkStatus(dbSession.DB("contribot").C("contributor"), user)
 	if status == 0 {
 		template["message"] = "Can't seem to find records of you :/"
 		r.HTML(http.StatusUnauthorized, "error", template)
 	} else if status == 1 {
-		err := userHasAuth(db, user)
+		err := userHasAuth(dbSession.DB("contribot").C("contributor"), user)
 		if err != nil {
 			log.Println(err)
 			template["message"] = "Uh oh! Please report this :("
@@ -202,9 +207,10 @@ func awardUser(db *mgo.Database, session sessions.Session, r render.Render, x cs
 		template["message"] = "Hey buddy, it seems you have been awarded before."
 		r.HTML(http.StatusUnauthorized, "error", template)
 	}
+	dbSession.Close()
 }
 
-func handleSubmission(req *http.Request, r render.Render, db *mgo.Database, session sessions.Session, backends []Backend) {
+func handleSubmission(req *http.Request, r render.Render, db *mgo.Session, session sessions.Session, backends []Backend) {
 	template := make(map[string]string)
 	template["contactUrl"] = os.Getenv("CONTACT_URL")
 	template["contactValue"] = os.Getenv("CONTACT_VALUE")
@@ -214,7 +220,8 @@ func handleSubmission(req *http.Request, r render.Render, db *mgo.Database, sess
 		r.HTML(http.StatusBadRequest, "error", template)
 	}
 	user := session.Get("user").(string)
-	err = userHasSubmitted(db, user)
+	dbSession := db.Copy()
+	err = userHasSubmitted(dbSession.DB("contribot").C("contributor"), user)
 
 	if err != nil {
 		log.Println(err)
