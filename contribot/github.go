@@ -28,15 +28,15 @@ func handleGitHook(req *http.Request, res http.ResponseWriter, db *mgo.Session) 
 		res.WriteHeader(http.StatusOK)
 		return
 	}
-	log.Println("Received Pull Request Payload")
 
-	err := req.ParseForm()
+	log.Println("Received Pull Request Payload")
+	rawPayload, err := ioutil.ReadAll(req.Body)
 	if err != nil {
 		log.Println(err)
+		return
 	}
-	rawPayload := req.PostForm.Get("payload")
 	var payload map[string]interface{}
-	err = json.Unmarshal([]byte(rawPayload), &payload)
+	err = json.Unmarshal(rawPayload, &payload)
 
 	pullRequest := payload["pull_request"].(map[string]interface{})
 	mergedPullRequest := pullRequest["merged"].(bool)
