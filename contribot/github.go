@@ -57,16 +57,23 @@ func handleGitHook(req *http.Request, res http.ResponseWriter, db *mgo.Session) 
 
 	pullRequest := payload["pull_request"].(map[string]interface{})
 	mergedPullRequest := pullRequest["merged"].(bool)
+	userInfo := pullRequest["user"].(map[string]interface{})
+	repository := payload["repository"].(map[string]interface{})
+	repoName := repository["full_name"].(string)
+	username := userInfo["login"].(string)
+	filter, err := isCollaborator(repoName, username)
+	if err != nil {
+		log.Println(err)
+		res.WriteHeader(http.StatusInternalServerError)
+		return
+	}
 
-	if mergedPullRequest {
+	if mergedPullRequest && !filter {
 		dbSession := db.Copy()
 		c := dbSession.DB("contribot").C("contributor")
-		userInfo := pullRequest["user"].(map[string]interface{})
-		scheduled := scheduleContributor(c, userInfo["login"].(string))
+		scheduled := scheduleContributor(c, username)
 		if scheduled {
-			log.Printf("New Contributor: %s", userInfo["login"])
-			repository := payload["repository"].(map[string]interface{})
-			repoName := repository["full_name"].(string)
+			log.Printf("New Contributor: %s", username)
 			pullRequestNumber := fmt.Sprintf("%.0f", pullRequest["number"].(float64))
 			go postRewardInvite(repoName, pullRequestNumber)
 		}
@@ -74,6 +81,14 @@ func handleGitHook(req *http.Request, res http.ResponseWriter, db *mgo.Session) 
 		dbSession.Close()
 	}
 	res.WriteHeader(http.StatusOK)
+}
+
+func isCollaborator(repoName, username string) (bool, error) {
+	res, err := http.Get(fmt.Sprintf(gitHubAPIURL+"/repos/%s/collaborators/%s", repoName, username))
+	if err != nil {
+		return false, err
+	}
+	return res.StatusCode == http.StatusNoContent, err
 }
 
 func postRewardInvite(repoName, prNumber string) {
